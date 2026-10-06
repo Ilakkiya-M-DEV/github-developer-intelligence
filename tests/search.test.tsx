@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SearchPagination } from '../src/features/search/components/SearchPagination';
 import { SearchError } from '../src/features/search/components/SearchStatus';
@@ -11,6 +11,12 @@ import SearchPage from '../src/pages/SearchPage';
 import { githubApi } from '../src/services/github/githubApi';
 import { GitHubApiError } from '../src/services/github/githubErrors';
 import type { GitHubRepository } from '../src/services/github/types';
+import { normalizeSearchPage } from '../src/features/search/utils/normalizeSearchPage';
+
+function SearchLocation() {
+  const location = useLocation();
+  return <output data-testid="search-location">{`${location.pathname}${location.search}`}</output>;
+}
 
 function createQueryClient() {
   const queryClient = new QueryClient({
@@ -31,6 +37,7 @@ function renderSearchAt(entry: string) {
     <QueryClientProvider client={createQueryClient()}>
       <MemoryRouter initialEntries={[entry]}>
         <SearchPage />
+        <SearchLocation />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -40,6 +47,28 @@ afterEach(() => {
   cleanup();
   vi.useRealTimers();
   vi.restoreAllMocks();
+});
+
+describe('normalizeSearchPage', () => {
+  it.each([
+    [null, 1],
+    ['', 1],
+    ['invalid', 1],
+    ['0', 1],
+    ['-3', 1],
+    ['1.5', 1],
+    ['1', 1],
+    ['25', 25],
+    ['50', 50],
+    ['51', 50],
+    ['999', 50],
+    [Number.NaN, 1],
+    [0, 1],
+    [-1, 1],
+    [51, 50],
+  ])('normalizes page %s to %s', (value, expected) => {
+    expect(normalizeSearchPage(value)).toBe(expected);
+  });
 });
 
 describe('useDebounce', () => {
@@ -116,11 +145,13 @@ describe('search presentation states', () => {
       html_url: 'https://github.com/facebook/react',
       stargazers_count: 220_000,
       forks_count: 45_000,
+      watchers_count: 220_000,
       open_issues_count: 1_200,
       language: 'JavaScript',
       created_at: '2013-05-24T00:00:00Z',
       updated_at: '2026-10-01T00:00:00Z',
       pushed_at: '2026-10-01T00:00:00Z',
+      default_branch: 'main',
       owner: {
         id: 2,
         login: 'facebook',
@@ -143,6 +174,118 @@ describe('search presentation states', () => {
       screen.getByRole('link', { name: 'facebook/react on GitHub (opens in a new tab)' })
         .getAttribute('rel'),
     ).toBe('noopener noreferrer');
+  });
+
+  it('links repository search results to the in-app repository route', async () => {
+    vi.spyOn(githubApi, 'searchRepositories').mockResolvedValue({
+      total_count: 1,
+      incomplete_results: false,
+      items: [
+        {
+          id: 1,
+          name: 'react',
+          full_name: 'facebook/react',
+          description: null,
+          html_url: 'https://github.com/facebook/react',
+          stargazers_count: 10,
+          forks_count: 2,
+          watchers_count: 10,
+          open_issues_count: 1,
+          language: 'JavaScript',
+          created_at: '2013-05-24T00:00:00Z',
+          updated_at: '2026-10-01T00:00:00Z',
+          pushed_at: '2026-10-01T00:00:00Z',
+          default_branch: 'main',
+          owner: {
+            id: 2,
+            login: 'facebook',
+            avatar_url: 'https://avatars.githubusercontent.com/u/69631?v=4',
+            html_url: 'https://github.com/facebook',
+            type: 'Organization',
+          },
+        },
+      ],
+    });
+    renderSearchAt('/?q=react');
+
+    const repositoryLink = await screen.findByRole('link', { name: 'react' });
+    expect(repositoryLink.getAttribute('href')).toBe('/repositories/facebook/react');
+    expect(screen.getByRole('link', {
+      name: 'facebook/react on GitHub (opens in a new tab)',
+    }).getAttribute('href')).toBe('https://github.com/facebook/react');
+    fireEvent.click(repositoryLink);
+    expect(screen.getByTestId('search-location').textContent).toBe('/repositories/facebook/react');
+  });
+
+  it('clamps an out-of-range URL page before it reaches the search API', async () => {
+    const request = vi.spyOn(githubApi, 'searchRepositories').mockResolvedValue({
+      total_count: 1_000,
+      incomplete_results: false,
+      items: [],
+    });
+    renderSearchAt('/?q=react&page=999');
+
+    await waitFor(() => expect(request).toHaveBeenCalledWith(
+      'react',
+      expect.objectContaining({ page: 50 }),
+    ));
+    await waitFor(() => expect(screen.getByTestId('search-location').textContent).toBe('/?q=react&page=50'));
+  });
+
+  it('debounces rapid UI searches and keeps the latest term and result visible', async () => {
+    vi.useFakeTimers();
+    const request = vi.spyOn(githubApi, 'searchRepositories').mockImplementation(
+      (term) => Promise.resolve({
+        total_count: 1,
+        incomplete_results: false,
+        items: [
+          {
+            id: term === 'typescript' ? 2 : 1,
+            name: `${term}-result`,
+            full_name: `example/${term}-result`,
+            description: `Result for ${term}`,
+            html_url: `https://github.com/example/${term}-result`,
+            stargazers_count: 1,
+            forks_count: 0,
+            watchers_count: 1,
+            open_issues_count: 0,
+            language: 'TypeScript',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2026-10-01T00:00:00Z',
+            pushed_at: '2026-10-01T00:00:00Z',
+            default_branch: 'main',
+            owner: {
+              id: 3,
+              login: 'example',
+              avatar_url: 'https://avatars.githubusercontent.com/u/3?v=4',
+              html_url: 'https://github.com/example',
+              type: 'Organization',
+            },
+          },
+        ],
+      }),
+    );
+    renderSearchAt('/');
+    const input = screen.getByRole('searchbox', { name: 'Search GitHub' });
+
+    fireEvent.change(input, { target: { value: 'react' } });
+    act(() => vi.advanceTimersByTime(200));
+    fireEvent.change(input, { target: { value: 'typescript' } });
+    expect(screen.getByTestId('search-location').textContent).toBe('/?q=typescript');
+
+    act(() => vi.advanceTimersByTime(349));
+    expect(request).not.toHaveBeenCalled();
+
+    act(() => vi.advanceTimersByTime(1));
+    vi.useRealTimers();
+
+    await waitFor(() => {
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(request).toHaveBeenCalledWith('typescript', expect.any(Object));
+    });
+    expect(await screen.findByRole('heading', { name: 'typescript-result' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'react-result' })).toBeNull();
+    expect(screen.getByTestId('search-location').textContent).toBe('/?q=typescript');
   });
 
   it('shows a useful empty result message', async () => {

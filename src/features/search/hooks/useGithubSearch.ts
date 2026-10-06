@@ -2,9 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { githubApi } from '../../../services/github/githubApi';
 import type { GitHubRepository, GitHubSearchResponse, GitHubUser } from '../../../services/github/types';
 import type { GithubSearchType } from '../types';
+import { SEARCH_PAGE_SIZE } from '../utils/normalizeSearchPage';
 
-export const SEARCH_PAGE_SIZE = 20;
 export const MIN_SEARCH_LENGTH = 2;
+export { SEARCH_PAGE_SIZE };
 
 type SearchResponse =
   | GitHubSearchResponse<GitHubRepository>

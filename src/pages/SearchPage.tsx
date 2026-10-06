@@ -1,6 +1,7 @@
+import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageContainer } from '../components/layout/PageContainer';
-import { MIN_SEARCH_LENGTH, SEARCH_PAGE_SIZE, useGithubSearch } from '../features/search/hooks/useGithubSearch';
+import { MIN_SEARCH_LENGTH, useGithubSearch } from '../features/search/hooks/useGithubSearch';
 import { SearchBar } from '../features/search/components/SearchBar';
 import { SearchPagination } from '../features/search/components/SearchPagination';
 import { SearchResults } from '../features/search/components/SearchResults';
@@ -10,25 +11,32 @@ import { toSearchRepository, toSearchUser } from '../features/search/utils/toSea
 import type { GithubSearchType } from '../features/search/types';
 import { useDebounce } from '../hooks/useDebounce';
 import type { GitHubRepository, GitHubUser } from '../services/github/types';
+import { normalizeSearchPage, SEARCH_PAGE_SIZE } from '../features/search/utils/normalizeSearchPage';
 
 function parseSearchType(value: string | null): GithubSearchType {
   return value === 'user' ? 'user' : 'repository';
-}
-
-function parsePage(value: string | null): number {
-  const page = Number(value);
-  return Number.isInteger(page) && page > 0 ? page : 1;
 }
 
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const searchType = parseSearchType(searchParams.get('type'));
   const searchTerm = searchParams.get('q') ?? '';
-  const page = parsePage(searchParams.get('page'));
+  const rawPage = searchParams.get('page');
+  const page = normalizeSearchPage(rawPage);
   const debouncedTerm = useDebounce(searchTerm);
   const normalizedTerm = debouncedTerm.trim();
   const isDebouncing = searchTerm.trim() !== normalizedTerm;
   const query = useGithubSearch(searchType, normalizedTerm, page);
+
+  useEffect(() => {
+    const canonicalPage = page === 1 ? null : String(page);
+    if (rawPage === canonicalPage) return;
+
+    const nextParams = new URLSearchParams(searchParams);
+    if (canonicalPage === null) nextParams.delete('page');
+    else nextParams.set('page', canonicalPage);
+    setSearchParams(nextParams, { replace: true });
+  }, [page, rawPage, searchParams, setSearchParams]);
 
   const updateParams = (updates: {
     q?: string;

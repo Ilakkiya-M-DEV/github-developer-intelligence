@@ -1,3 +1,4 @@
+import { generatePath, Link } from 'react-router-dom';
 import type { SearchRepository } from '../types';
 
 interface RepositoryCardProps {
@@ -30,7 +31,17 @@ export function RepositoryCard({ repository }: RepositoryCardProps) {
           <span className="repository-card__owner">{repository.ownerLogin}</span>
           <span className="repository-card__separator" aria-hidden="true">/</span>
         </div>
-        <h3 className="result-card__title">{repository.name}</h3>
+        <h3 className="result-card__title">
+          <Link
+            className="repository-card__details-link"
+            to={generatePath('/repositories/:owner/:repo', {
+              owner: repository.ownerLogin,
+              repo: repository.name,
+            })}
+          >
+            {repository.name}
+          </Link>
+        </h3>
         <p className="result-card__description">
           {repository.description || 'No description provided.'}
         </p>

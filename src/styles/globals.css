@@ -493,6 +493,17 @@ a:focus-visible {
   line-height: 1.4;
 }
 
+.repository-card__details-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.repository-card__details-link:hover {
+  color: var(--color-accent-contrast);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
 .result-card__description,
 .user-card__location,
 .user-card__username {
@@ -625,6 +636,247 @@ a:focus-visible {
 
 .user-profile-details__status {
   margin: 0;
+}
+
+.repository-page {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.repository-header {
+  padding: clamp(var(--space-6), 5vw, var(--space-10));
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.repository-header__identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.repository-header__identity .eyebrow {
+  margin: 0 0 var(--space-1);
+}
+
+.repository-header__avatar {
+  width: 3rem;
+  height: 3rem;
+}
+
+.repository-header__owner,
+.repository-header__full-name {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.repository-header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 650;
+  letter-spacing: -0.05em;
+  line-height: var(--line-height-tight);
+  overflow-wrap: anywhere;
+}
+
+.repository-header__full-name {
+  margin-top: var(--space-2);
+}
+
+.repository-header__description {
+  max-width: 48rem;
+  margin: var(--space-5) 0 0;
+  color: var(--color-text-muted);
+}
+
+.repository-header__github-link {
+  margin-top: var(--space-5);
+}
+
+.repository-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: 0 4px 16px rgb(26 44 78 / 3%);
+}
+
+.repository-stat {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-5) var(--space-6);
+}
+
+.repository-stat + .repository-stat {
+  border-left: var(--border-width) solid var(--color-border);
+}
+
+.repository-stat__value {
+  color: var(--color-text);
+  font-size: var(--font-size-xl);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+
+.repository-stat__label {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.repository-metadata,
+.repository-issues {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.repository-metadata h2,
+.repository-section-heading h2 {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+
+.repository-metadata > dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: var(--space-5);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.repository-metadata__item {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.repository-metadata__item dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.repository-metadata__item dd {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.repository-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.repository-section-heading .eyebrow {
+  margin-bottom: var(--space-2);
+}
+
+.issue-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.issue-card {
+  min-width: 0;
+  padding: var(--space-5) var(--space-6);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.issue-card__heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.issue-state {
+  padding: 0.1rem var(--space-2);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 650;
+}
+
+.issue-state--open {
+  border-color: #c8eadc;
+  color: #227a58;
+  background: #effaf5;
+}
+
+.issue-state--closed {
+  border-color: #ded6f3;
+  color: #6547a3;
+  background: #f6f2ff;
+}
+
+.issue-card__number {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.issue-card__title {
+  margin: var(--space-3) 0 0;
+  font-size: var(--font-size-base);
+  font-weight: 620;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.issue-card__title a {
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.issue-card__title a:hover {
+  color: var(--color-accent-contrast);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.issue-card__metadata {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  overflow-wrap: anywhere;
+}
+
+.repository-page__error {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.repository-page__error > h1 {
+  margin: 0;
+  font-size: var(--font-size-display);
+  letter-spacing: -0.05em;
+  line-height: var(--line-height-tight);
+}
+
+.repository-stats--loading {
+  gap: var(--space-3);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.repository-stats--loading .loading-card {
+  min-height: 5rem;
 }
 
 .user-card__stats div {
@@ -773,6 +1025,45 @@ a:focus-visible {
   .user-profile-details {
     margin-inline: 0;
     padding: var(--space-4);
+  }
+
+  .repository-page {
+    gap: var(--space-6);
+  }
+
+  .repository-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .repository-stat {
+    padding: var(--space-4);
+  }
+
+  .repository-stat:nth-child(3) {
+    border-left: 0;
+  }
+
+  .repository-stat:nth-child(n + 3) {
+    border-top: var(--border-width) solid var(--color-border);
+  }
+
+  .repository-metadata > dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5) var(--space-4);
+    padding: var(--space-4);
+  }
+
+  .repository-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .issue-card {
+    padding: var(--space-4);
+  }
+
+  .repository-stats--loading {
+    gap: var(--space-2);
   }
 
   .search-results-heading {
