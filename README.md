@@ -136,7 +136,7 @@ Store query, search type, and page in `q`, `type`, and `page` URL parameters.
 Keeping all search criteria only in component state.
 
 **Why I chose this:**
-Searches can be refreshed, bookmarked, and shared.
+The URL represents query, type, and page during app navigation. Opening a search URL as a new navigation can restore the search; a browser reload intentionally clears query and page while retaining the search type.
 
 **Trade-off:**
 URL values must be parsed and normalized; typing updates the URL.
@@ -218,7 +218,7 @@ These are measures for the current public-API client scope, not a broader securi
 
 ## Testing
 
-The current suite contains **41 tests** across two files, using Vitest and Testing Library.
+The current suite contains **43 tests** across two files, using Vitest and Testing Library.
 
 - Search and async behavior: debounce timing, minimum query length, cancellation, rapid input, URL state, page normalization, and pagination.
 - Search UI: empty results, repository navigation, user results, profile enrichment/cache/cancellation, and network/rate-limit messaging.
