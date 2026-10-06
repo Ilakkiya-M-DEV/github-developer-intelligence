@@ -74,9 +74,10 @@ function createHttpError(
   payload: GitHubErrorPayload,
 ): GitHubApiError {
   const isRateLimited =
-    response.status === 403 &&
-    (response.headers.get('x-ratelimit-remaining') === '0' ||
-      payload.message?.toLowerCase().includes('rate limit') === true);
+    response.status === 429 ||
+    (response.status === 403 &&
+      (response.headers.get('x-ratelimit-remaining') === '0' ||
+        payload.message?.toLowerCase().includes('rate limit') === true));
 
   let kind: GitHubApiErrorKind = 'http';
   if (response.status === 400) kind = 'invalid-request';
