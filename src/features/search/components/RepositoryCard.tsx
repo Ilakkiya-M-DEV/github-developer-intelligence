@@ -1,4 +1,4 @@
-import { generatePath, Link } from 'react-router-dom';
+import { generatePath, Link, useLocation } from 'react-router-dom';
 import type { SearchRepository } from '../types';
 
 interface RepositoryCardProps {
@@ -18,10 +18,12 @@ function formatDate(value: string): string {
 }
 
 export function RepositoryCard({ repository }: RepositoryCardProps) {
+  const location = useLocation();
   const detailsPath = generatePath('/repositories/:owner/:repo', {
     owner: repository.ownerLogin,
     repo: repository.name,
   });
+  const navigationState = { returnTo: `${location.pathname}${location.search}` };
 
   return (
     <article className="result-card repository-card">
@@ -40,6 +42,7 @@ export function RepositoryCard({ repository }: RepositoryCardProps) {
           <Link
             className="repository-card__details-link"
             to={detailsPath}
+            state={navigationState}
           >
             {repository.name}
           </Link>
@@ -59,6 +62,7 @@ export function RepositoryCard({ repository }: RepositoryCardProps) {
         <Link
           className="result-card__link result-card__link--primary"
           to={detailsPath}
+          state={navigationState}
         >
           View insights <span aria-hidden="true">→</span>
         </Link>

@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@t
 import type { PropsWithChildren } from 'react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { Header } from '../src/components/layout/Header';
 import { SearchPagination } from '../src/features/search/components/SearchPagination';
 import { SearchError } from '../src/features/search/components/SearchStatus';
 import { useGithubSearch } from '../src/features/search/hooks/useGithubSearch';
@@ -36,6 +37,7 @@ function renderSearchAt(entry: string) {
   return render(
     <QueryClientProvider client={createQueryClient()}>
       <MemoryRouter initialEntries={[entry]}>
+        <Header />
         <SearchPage />
         <SearchLocation />
       </MemoryRouter>
@@ -241,13 +243,19 @@ describe('search presentation states', () => {
     });
     renderSearchAt('/?q=react');
 
-    const repositoryLink = await screen.findByRole('link', { name: 'react' });
+    const repositoryLink = await screen.findByRole('link', { name: 'View insights' });
     expect(repositoryLink.getAttribute('href')).toBe('/repositories/facebook/react');
     expect(screen.getByRole('link', {
       name: 'facebook/react on GitHub (opens in a new tab)',
     }).getAttribute('href')).toBe('https://github.com/facebook/react');
     fireEvent.click(repositoryLink);
     expect(screen.getByTestId('search-location').textContent).toBe('/repositories/facebook/react');
+    const homeLink = screen.getByRole('link', { name: 'GitHub Developer Intelligence home' });
+    expect(homeLink.getAttribute('href')).toBe('/?q=react');
+
+    fireEvent.click(homeLink);
+    expect(screen.getByTestId('search-location').textContent).toBe('/?q=react');
+    expect((screen.getByRole('searchbox', { name: 'Search GitHub' }) as HTMLInputElement).value).toBe('react');
   });
 
   it('clamps an out-of-range URL page before it reaches the search API', async () => {

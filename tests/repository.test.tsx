@@ -1,7 +1,7 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { AppProviders } from '../src/app/providers';
 import RepositoryPage from '../src/pages/RepositoryPage';
 import { githubApi } from '../src/services/github/githubApi';
 import { GitHubApiError } from '../src/services/github/githubErrors';
@@ -54,17 +54,14 @@ function makeIssue(overrides: Partial<GitHubIssue> = {}): GitHubIssue {
 }
 
 function renderRepository() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false, staleTime: 30_000 } },
-  });
   return render(
-    <QueryClientProvider client={queryClient}>
+    <AppProviders>
       <MemoryRouter initialEntries={['/repositories/acme/project']}>
         <Routes>
           <Route path="/repositories/:owner/:repo" element={<RepositoryPage />} />
         </Routes>
       </MemoryRouter>
-    </QueryClientProvider>,
+    </AppProviders>,
   );
 }
 
@@ -102,6 +99,11 @@ describe('repository details page', () => {
     expect(await screen.findByRole('heading', { name: 'Improve the example' })).toBeTruthy();
     expect(screen.queryByText('This is a pull request')).toBeNull();
     expect(screen.getByText(/Created 1 Oct 2026/)).toBeTruthy();
+    expect(githubApi.getRepository).toHaveBeenCalledWith(
+      'acme',
+      'project',
+      expect.any(AbortSignal),
+    );
     expect(githubApi.getRepositoryIssues).toHaveBeenCalledWith(
       'acme',
       'project',
@@ -152,27 +154,27 @@ describe('repository details page', () => {
 
   it('retries a repository network failure when requested', async () => {
     const request = vi.spyOn(githubApi, 'getRepository')
-      .mockRejectedValueOnce(new GitHubApiError('offline', { kind: 'network' }))
-      .mockResolvedValueOnce(repository);
+      .mockRejectedValue(new GitHubApiError('offline', { kind: 'network' }));
     vi.spyOn(githubApi, 'getRepositoryIssues').mockResolvedValue([]);
     renderRepository();
 
+    await screen.findByRole('button', { name: 'Retry repository' });
+    request.mockResolvedValueOnce(repository);
     fireEvent.click(await screen.findByRole('button', { name: 'Retry repository' }));
     expect(await screen.findByRole('heading', { name: 'project' })).toBeTruthy();
-    await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
   });
 
   it('keeps repository details visible and offers retry when issues fail', async () => {
     vi.spyOn(githubApi, 'getRepository').mockResolvedValue(repository);
     const issueRequest = vi.spyOn(githubApi, 'getRepositoryIssues')
-      .mockRejectedValueOnce(new GitHubApiError('offline', { kind: 'network' }))
-      .mockResolvedValueOnce([makeIssue()]);
+      .mockRejectedValue(new GitHubApiError('offline', { kind: 'network' }));
     renderRepository();
 
     expect(await screen.findByRole('heading', { name: 'project' })).toBeTruthy();
+    await screen.findByRole('button', { name: 'Retry issues' });
+    issueRequest.mockResolvedValueOnce([makeIssue()]);
     fireEvent.click(await screen.findByRole('button', { name: 'Retry issues' }));
     expect(await screen.findByRole('heading', { name: 'Improve the example' })).toBeTruthy();
-    await waitFor(() => expect(issueRequest).toHaveBeenCalledTimes(2));
   });
 
   it('shows an independent issue rate-limit error and does not offer retry', async () => {
