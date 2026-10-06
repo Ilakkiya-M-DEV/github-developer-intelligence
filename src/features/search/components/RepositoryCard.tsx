@@ -18,26 +18,28 @@ function formatDate(value: string): string {
 }
 
 export function RepositoryCard({ repository }: RepositoryCardProps) {
+  const detailsPath = generatePath('/repositories/:owner/:repo', {
+    owner: repository.ownerLogin,
+    repo: repository.name,
+  });
+
   return (
     <article className="result-card repository-card">
+      <img
+        className="avatar repository-card__avatar"
+        src={repository.ownerAvatarUrl}
+        alt=""
+        loading="lazy"
+      />
       <div className="result-card__main">
         <div className="repository-card__identity">
-          <img
-            className="avatar avatar--small"
-            src={repository.ownerAvatarUrl}
-            alt=""
-            loading="lazy"
-          />
           <span className="repository-card__owner">{repository.ownerLogin}</span>
           <span className="repository-card__separator" aria-hidden="true">/</span>
         </div>
         <h3 className="result-card__title">
           <Link
             className="repository-card__details-link"
-            to={generatePath('/repositories/:owner/:repo', {
-              owner: repository.ownerLogin,
-              repo: repository.name,
-            })}
+            to={detailsPath}
           >
             {repository.name}
           </Link>
@@ -53,15 +55,23 @@ export function RepositoryCard({ repository }: RepositoryCardProps) {
           <li>Updated {formatDate(repository.updatedAt)}</li>
         </ul>
       </div>
-      <a
-        className="result-card__link"
-        href={repository.githubUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label={`${repository.fullName} on GitHub (opens in a new tab)`}
-      >
-        View on GitHub <span aria-hidden="true">↗</span>
-      </a>
+      <div className="repository-card__actions">
+        <Link
+          className="result-card__link result-card__link--primary"
+          to={detailsPath}
+        >
+          View insights <span aria-hidden="true">→</span>
+        </Link>
+        <a
+          className="result-card__link"
+          href={repository.githubUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`${repository.fullName} on GitHub (opens in a new tab)`}
+        >
+          View on GitHub <span aria-hidden="true">↗</span>
+        </a>
+      </div>
     </article>
   );
 }

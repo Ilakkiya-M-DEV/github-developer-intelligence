@@ -136,6 +136,39 @@ describe('search presentation states', () => {
     expect(request).not.toHaveBeenCalled();
   });
 
+  it('clears the search term and page after a browser refresh', async () => {
+    vi.spyOn(performance, 'getEntriesByType').mockReturnValue([
+      { entryType: 'navigation', type: 'reload' } as PerformanceNavigationTiming,
+    ]);
+    const request = vi.spyOn(githubApi, 'searchRepositories');
+
+    renderSearchAt('/?q=react&page=3&type=user');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('search-location').textContent).toBe('/?type=user');
+    });
+    expect((screen.getByRole('searchbox', { name: 'Search GitHub' }) as HTMLInputElement).value).toBe('');
+    expect(screen.getByRole('heading', { name: 'Find your next open-source signal' })).toBeTruthy();
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it('runs the current search immediately when the Search button is submitted', async () => {
+    const request = vi.spyOn(githubApi, 'searchRepositories').mockResolvedValue({
+      total_count: 0,
+      incomplete_results: false,
+      items: [],
+    });
+    renderSearchAt('/');
+
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search GitHub' }), {
+      target: { value: 'react' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+
+    expect(await screen.findByRole('heading', { name: 'No repositories found for “react”.' })).toBeTruthy();
+    expect(request).toHaveBeenCalledWith('react', expect.any(Object));
+  });
+
   it('renders repository results from the URL-backed search', async () => {
     const repository: GitHubRepository = {
       id: 1,

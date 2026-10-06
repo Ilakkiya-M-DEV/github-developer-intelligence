@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageContainer } from '../components/layout/PageContainer';
 import { MIN_SEARCH_LENGTH, useGithubSearch } from '../features/search/hooks/useGithubSearch';
@@ -6,7 +6,8 @@ import { SearchBar } from '../features/search/components/SearchBar';
 import { SearchPagination } from '../features/search/components/SearchPagination';
 import { SearchResults } from '../features/search/components/SearchResults';
 import { SearchError, SearchLoading } from '../features/search/components/SearchStatus';
-import { SearchTypeToggle } from '../features/search/components/SearchTypeToggle';
+import { SearchHero } from '../features/search/components/SearchHero';
+import { SearchSidebar } from '../features/search/components/SearchSidebar';
 import { toSearchRepository, toSearchUser } from '../features/search/utils/toSearchModels';
 import type { GithubSearchType } from '../features/search/types';
 import { useDebounce } from '../hooks/useDebounce';
@@ -17,16 +18,37 @@ function parseSearchType(value: string | null): GithubSearchType {
   return value === 'user' ? 'user' : 'repository';
 }
 
+function isBrowserReload(): boolean {
+  const [navigationEntry] = performance.getEntriesByType('navigation');
+  return Boolean(
+    navigationEntry &&
+    'type' in navigationEntry &&
+    navigationEntry.type === 'reload',
+  );
+}
+
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [clearSearchOnReload, setClearSearchOnReload] = useState(isBrowserReload);
   const searchType = parseSearchType(searchParams.get('type'));
-  const searchTerm = searchParams.get('q') ?? '';
-  const rawPage = searchParams.get('page');
+  const searchTerm = clearSearchOnReload ? '' : searchParams.get('q') ?? '';
+  const rawPage = clearSearchOnReload ? null : searchParams.get('page');
   const page = normalizeSearchPage(rawPage);
+  const [submittedTerm, setSubmittedTerm] = useState<string | null>(null);
   const debouncedTerm = useDebounce(searchTerm);
-  const normalizedTerm = debouncedTerm.trim();
+  const normalizedTerm = (submittedTerm === searchTerm ? searchTerm : debouncedTerm).trim();
   const isDebouncing = searchTerm.trim() !== normalizedTerm;
   const query = useGithubSearch(searchType, normalizedTerm, page);
+
+  useEffect(() => {
+    if (!clearSearchOnReload) return;
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('q');
+    nextParams.delete('page');
+    setSearchParams(nextParams, { replace: true });
+    setClearSearchOnReload(false);
+  }, [clearSearchOnReload, searchParams, setSearchParams]);
 
   useEffect(() => {
     const canonicalPage = page === 1 ? null : String(page);
@@ -73,83 +95,92 @@ export default function SearchPage() {
   return (
     <PageContainer>
       <div className="page-content search-page">
-        <header className="page-intro">
-          <p className="eyebrow">DEVELOPER INTELLIGENCE</p>
-          <h1>A clearer view of the work behind the code.</h1>
-          <p className="page-intro__description">
-            Explore the people and projects shaping open source.
-          </p>
-        </header>
+        <SearchHero />
 
         <section className="search-workspace" aria-label="GitHub search">
           <div className="search-workspace__controls">
-            <SearchTypeToggle
-              searchType={searchType}
-              onSearchTypeChange={(type) => updateParams({ type, page: 1 })}
-            />
             <SearchBar
               searchTerm={searchTerm}
-              onSearchTermChange={(value) => updateParams({ q: value, page: 1 }, true)}
+              onSearchTermChange={(value) => {
+                setSubmittedTerm(null);
+                updateParams({ q: value, page: 1 }, true);
+              }}
+              onSearchSubmit={() => setSubmittedTerm(searchTerm)}
             />
           </div>
 
-          {!searchTerm.trim() ? (
-            <section className="search-message" aria-labelledby="search-welcome-title">
-              <div className="placeholder-panel__indicator" aria-hidden="true">
-                <span />
-              </div>
-              <p className="placeholder-panel__eyebrow">YOUR WORKSPACE</p>
-              <h2 id="search-welcome-title">Find your next open-source signal</h2>
-              <p>Search public GitHub repositories or people by name, topic, or language.</p>
-            </section>
-          ) : showTooShortMessage ? (
-            <section className="search-message" aria-live="polite">
-              <h2>Keep typing to search</h2>
-              <p>Enter at least {MIN_SEARCH_LENGTH} characters to search GitHub.</p>
-            </section>
-          ) : isLoading ? (
-            <SearchLoading searchType={searchType} />
-          ) : query.isError ? (
-            <SearchError error={query.error} onRetry={() => void query.refetch()} />
-          ) : query.data && query.data.items.length === 0 ? (
-            <section className="search-message" aria-live="polite">
-              <h2>No {searchType === 'repository' ? 'repositories' : 'people'} found for “{normalizedTerm}”.</h2>
-              <p>Try a different search term or switch the search type.</p>
-            </section>
-          ) : query.data ? (
-            <>
-              <div className="search-results-heading">
-                <div>
-                  <h2>
-                    {searchType === 'repository' ? 'Repositories' : 'People'}
-                    <span className="search-results-heading__count">
-                      {new Intl.NumberFormat().format(totalCount)}
-                    </span>
-                  </h2>
-                  <p>
-                    Results for <strong>{normalizedTerm}</strong>
-                    {query.data.incomplete_results && ' · GitHub returned partial results'}
-                  </p>
-                </div>
-                {query.isFetching && (
-                  <span className="inline-loading" role="status">Updating results…</span>
-                )}
-              </div>
-              <SearchResults
-                key={`${searchType}:${normalizedTerm}:${page}`}
-                searchType={searchType}
-                repositories={repositoryItems}
-                users={userItems}
-              />
-              <SearchPagination
-                page={page}
-                totalCount={totalCount}
-                pageSize={SEARCH_PAGE_SIZE}
-                isPlaceholderData={query.isPlaceholderData}
-                onPageChange={(nextPage) => updateParams({ page: nextPage })}
-              />
-            </>
-          ) : null}
+          <div className="search-content-layout">
+            <SearchSidebar
+              searchType={searchType}
+              searchTerm={normalizedTerm}
+              resultCount={query.data?.total_count}
+              onSearchTypeChange={(type) => {
+                setSubmittedTerm(null);
+                updateParams({ type, page: 1 });
+              }}
+            />
+
+            <div className="search-content">
+              {!searchTerm.trim() ? (
+                <section className="search-message search-message--welcome" aria-labelledby="search-welcome-title">
+                  <div className="placeholder-panel__indicator" aria-hidden="true">
+                    <span />
+                  </div>
+                  <p className="placeholder-panel__eyebrow">YOUR WORKSPACE</p>
+                  <h2 id="search-welcome-title">Find your next open-source signal</h2>
+                  <p>Search public GitHub repositories or people by name, topic, or language.</p>
+                </section>
+              ) : showTooShortMessage ? (
+                <section className="search-message" aria-live="polite">
+                  <h2>Keep typing to search</h2>
+                  <p>Enter at least {MIN_SEARCH_LENGTH} characters to search GitHub.</p>
+                </section>
+              ) : isLoading ? (
+                <SearchLoading searchType={searchType} />
+              ) : query.isError ? (
+                <SearchError error={query.error} onRetry={() => void query.refetch()} />
+              ) : query.data && query.data.items.length === 0 ? (
+                <section className="search-message" aria-live="polite">
+                  <h2>No {searchType === 'repository' ? 'repositories' : 'people'} found for “{normalizedTerm}”.</h2>
+                  <p>Try a different search term or switch the search type.</p>
+                </section>
+              ) : query.data ? (
+                <>
+                  <div className="search-results-heading">
+                    <div>
+                      <p className="eyebrow">{searchType === 'repository' ? 'PROJECT DISCOVERY' : 'DEVELOPER DISCOVERY'}</p>
+                      <h2>
+                        {searchType === 'repository' ? 'Repositories' : 'Developers'}
+                        <span className="search-results-heading__count">
+                          {new Intl.NumberFormat().format(totalCount)}
+                        </span>
+                      </h2>
+                      <p>
+                        Results for <strong>{normalizedTerm}</strong>
+                        {query.data.incomplete_results && ' · GitHub returned partial results'}
+                      </p>
+                    </div>
+                    {query.isFetching && (
+                      <span className="inline-loading" role="status">Updating results…</span>
+                    )}
+                  </div>
+                  <SearchResults
+                    key={`${searchType}:${normalizedTerm}:${page}`}
+                    searchType={searchType}
+                    repositories={repositoryItems}
+                    users={userItems}
+                  />
+                  <SearchPagination
+                    page={page}
+                    totalCount={totalCount}
+                    pageSize={SEARCH_PAGE_SIZE}
+                    isPlaceholderData={query.isPlaceholderData}
+                    onPageChange={(nextPage) => updateParams({ page: nextPage })}
+                  />
+                </>
+              ) : null}
+            </div>
+          </div>
         </section>
       </div>
     </PageContainer>
