@@ -1,0 +1,51 @@
+:root {
+  color-scheme: light;
+
+  --color-canvas: #f6f8fb;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f8fafc;
+  --color-text: #172235;
+  --color-text-muted: #627087;
+  --color-text-subtle: #8995a7;
+  --color-border: #e3e8ef;
+  --color-border-strong: #d4dce7;
+  --color-accent: #315fce;
+  --color-accent-soft: #edf3ff;
+  --color-accent-contrast: #244daa;
+  --color-status: #37a77a;
+
+  --font-family-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.375rem;
+  --font-size-display: clamp(2.25rem, 5vw, 3.5rem);
+  --line-height-tight: 1.12;
+  --line-height-normal: 1.6;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+
+  --border-width: 1px;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.25rem;
+  --radius-pill: 999px;
+
+  --shadow-header: 0 1px 2px rgb(23 34 53 / 4%);
+  --shadow-panel: 0 16px 40px rgb(26 44 78 / 5%), 0 2px 8px rgb(26 44 78 / 3%);
+  --focus-ring: 0 0 0 3px rgb(49 95 206 / 22%);
+
+  --container-width: 72rem;
+}
